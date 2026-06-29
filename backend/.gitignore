@@ -1,0 +1,8 @@
+# Covered by root .gitignore — keep this as a fallback
+node_modules/
+dist/
+.env
+*.log
+uploads/
+coverage/
+*.tsbuildinfo
