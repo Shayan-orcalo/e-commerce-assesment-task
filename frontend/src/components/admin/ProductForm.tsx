@@ -172,15 +172,20 @@ export default function ProductForm({ defaultValues, onSubmit, loading, mode }: 
           </button>
         </div>
 
+        {/* Hidden input keeps imageUrl always registered regardless of active tab */}
+        <input type="hidden" {...register('imageUrl')} />
+
         {/* URL input */}
         {imageMode === 'url' && (
           <input
             type="url"
             placeholder="https://example.com/product.jpg"
             className={`input-base ${errors.imageUrl ? 'border-red-400 focus:border-red-400 focus:ring-red-200' : ''}`}
-            {...register('imageUrl', {
-              onChange: (e) => setPreview(e.target.value),
-            })}
+            value={imageUrl || ''}
+            onChange={(e) => {
+              setValue('imageUrl', e.target.value, { shouldValidate: true })
+              setPreview(e.target.value)
+            }}
           />
         )}
 

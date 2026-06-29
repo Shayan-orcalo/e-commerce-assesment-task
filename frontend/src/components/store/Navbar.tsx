@@ -15,6 +15,9 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [searchVal, setSearchVal] = useState('')
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => { setMounted(true) }, [])
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 10)
@@ -84,8 +87,10 @@ export default function Navbar() {
               )}
             </button>
 
-            {/* Auth */}
-            {isAuthenticated() && user ? (
+            {/* Auth — only render after Zustand hydration to avoid Sign In flash */}
+            {!mounted ? (
+              <div className="hidden sm:block w-24 h-9 bg-slate-100 rounded-xl animate-pulse" />
+            ) : isAuthenticated() && user ? (
               <div className="relative">
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
@@ -175,7 +180,7 @@ export default function Navbar() {
                 />
               </div>
             </form>
-            {!isAuthenticated() && (
+            {mounted && !isAuthenticated() && (
               <div className="flex gap-2">
                 <Link href="/auth/login" className="btn-ghost flex-1 text-center">Sign In</Link>
                 <Link href="/auth/signup" className="btn-primary flex-1 text-center">Get Started</Link>
