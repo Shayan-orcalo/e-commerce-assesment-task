@@ -8,9 +8,10 @@ import { CartModule } from './cart/cart.module';
 import { OrdersModule } from './orders/orders.module';
 import { PaymentsModule } from './payments/payments.module';
 import { AdminModule } from './admin/admin.module';
-import { UploadsModule } from './uploads/uploads.module';
+import { AppController } from './app.controller';
 
 @Module({
+  controllers: [AppController],
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     MongooseModule.forRootAsync({
@@ -27,7 +28,6 @@ import { UploadsModule } from './uploads/uploads.module';
     OrdersModule,
     PaymentsModule,
     AdminModule,
-    UploadsModule,
   ],
 })
 export class AppModule {}

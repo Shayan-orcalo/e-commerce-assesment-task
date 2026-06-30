@@ -1,8 +1,16 @@
+'use client'
+import { usePathname } from 'next/navigation'
 import Navbar from '@/components/store/Navbar'
 import CartDrawer from '@/components/store/CartDrawer'
 import Footer from '@/components/store/Footer'
 
 export default function StoreLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
+
+  if (pathname.startsWith('/auth')) {
+    return <>{children}</>
+  }
+
   return (
     <>
       <Navbar />

@@ -13,7 +13,7 @@ export class PaymentsService {
     }
   }
 
-  async createPaymentIntent(amount: number): Promise<{ clientSecret: string }> {
+  async createPaymentIntent(amount: number): Promise<{ clientSecret: string; isMock?: boolean }> {
     if (this.stripe) {
       const intent = await this.stripe.paymentIntents.create({
         amount: Math.round(amount * 100),
@@ -22,6 +22,6 @@ export class PaymentsService {
       });
       return { clientSecret: intent.client_secret! };
     }
-    return { clientSecret: `mock_cs_${Date.now()}_${Math.random().toString(36).slice(2)}` };
+    return { clientSecret: `pi_mock_${Date.now()}_secret_demo`, isMock: true };
   }
 }

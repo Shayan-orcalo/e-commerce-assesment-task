@@ -1,0 +1,59 @@
+version: '3.9'
+
+services:
+
+  mongo:
+    image: mongo:7
+    container_name: luxeshop-mongo
+    restart: unless-stopped
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - luxeshop
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: luxeshop-backend
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    ports:
+      - '8000:8000'
+    environment:
+      MONGODB_URI: mongodb://mongo:27017/luxeshop
+      JWT_SECRET: your-secret-key-here
+      JWT_EXPIRY: 7d
+      PORT: 8000
+      NODE_ENV: production
+      PAYMENT_MODE: mock
+      FRONTEND_URL: http://localhost:3000
+    networks:
+      - luxeshop
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+    container_name: luxeshop-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - '3000:3000'
+    environment:
+      NODE_ENV: production
+    networks:
+      - luxeshop
+
+volumes:
+  mongo_data:
+
+networks:
+  luxeshop:
+    driver: bridge

@@ -7,19 +7,20 @@ import { Spinner } from '@/components/ui/Spinner'
 import { Menu, Package } from 'lucide-react'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isAdmin } = useAuthStore()
+  const { isAuthenticated, isAdmin, _hasHydrated } = useAuthStore()
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
+    if (!_hasHydrated) return
     if (!isAuthenticated()) {
       router.push('/auth/login?redirect=/admin/dashboard')
     } else if (!isAdmin()) {
       router.push('/')
     }
-  }, [isAuthenticated, isAdmin, router])
+  }, [_hasHydrated, isAuthenticated, isAdmin, router])
 
-  if (!isAuthenticated() || !isAdmin()) {
+  if (!_hasHydrated || !isAuthenticated() || !isAdmin()) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <Spinner size="lg" text="Verifying access..." />

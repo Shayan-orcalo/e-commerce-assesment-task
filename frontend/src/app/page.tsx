@@ -9,12 +9,12 @@ import Navbar from '@/components/store/Navbar'
 import CartDrawer from '@/components/store/CartDrawer'
 import { Spinner } from '@/components/ui/Spinner'
 import { ChevronLeft, ChevronRight, SlidersHorizontal, X, Package, Search } from 'lucide-react'
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { cn } from '@/lib/utils'
 
 const LIMIT = 12
 
-export default function CatalogPage() {
+function CatalogContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
@@ -211,5 +211,13 @@ export default function CatalogPage() {
         </div>
       </main>
     </>
+  )
+}
+
+export default function CatalogPage() {
+  return (
+    <Suspense fallback={null}>
+      <CatalogContent />
+    </Suspense>
   )
 }

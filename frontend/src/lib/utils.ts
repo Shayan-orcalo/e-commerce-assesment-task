@@ -16,6 +16,7 @@ export const getCategoryColor = (category: string): string => {
     Electronics: 'bg-blue-100 text-blue-700',
     Clothing: 'bg-pink-100 text-pink-700',
     Books: 'bg-amber-100 text-amber-700',
+    Accessories: 'bg-yellow-100 text-yellow-700',
     Sports: 'bg-green-100 text-green-700',
     Home: 'bg-purple-100 text-purple-700',
     Beauty: 'bg-rose-100 text-rose-700',
@@ -36,7 +37,7 @@ export const getStatusColor = (status: string): string => {
   return map[status] ?? 'bg-slate-100 text-slate-700 border-slate-200'
 }
 
-export const CATEGORIES = ['Electronics', 'Clothing', 'Books', 'Sports', 'Home', 'Beauty', 'Toys', 'Food']
+export const CATEGORIES = ['Electronics', 'Clothing', 'Accessories', 'Books', 'Sports', 'Home', 'Beauty', 'Toys', 'Food']
 
 export const SORT_OPTIONS = [
   { value: 'newest', label: 'Newest First' },
