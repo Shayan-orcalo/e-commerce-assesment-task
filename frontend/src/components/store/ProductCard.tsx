@@ -1,8 +1,9 @@
 'use client'
 import { Product } from '@/types'
 import { useCartStore } from '@/store/cartStore'
+import { useWishlistStore } from '@/store/wishlistStore'
 import { formatCurrency, getCategoryColor } from '@/lib/utils'
-import { ShoppingCart, Star, Package } from 'lucide-react'
+import { ShoppingCart, Star, Package, Heart } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
@@ -13,12 +14,26 @@ interface ProductCardProps {
 
 export default function ProductCard({ product }: ProductCardProps) {
   const { addItem } = useCartStore()
+  const { toggleItem, isInWishlist } = useWishlistStore()
+  const isFavourite = isInWishlist(product.id)
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault()
     if (product.stockQuantity === 0) return
     addItem(product, 1)
     toast.success(`${product.name} added to cart!`)
+  }
+
+  // Just toggles the heart (checked/unchecked) — the drawer only opens from
+  // the navbar's heart icon, not from clicking a product card's heart.
+  const handleToggleFavourite = (e: React.MouseEvent) => {
+    e.preventDefault()
+    toggleItem(product)
+    if (isFavourite) {
+      toast.success(`Removed from favourites`)
+    } else {
+      toast.success(`Added to favourites!`)
+    }
   }
 
   return (
@@ -68,16 +83,29 @@ export default function ProductCard({ product }: ProductCardProps) {
 
         {/* Content */}
         <div className="flex flex-col flex-1 p-4 gap-2">
-          <div className="flex-1">
-            <h3 className="font-semibold text-slate-900 text-sm leading-snug line-clamp-2 group-hover:text-brand-600 transition-colors">
+          {/* Title row with favourite button */}
+          <div className="flex items-start gap-2">
+            <h3 className="flex-1 font-semibold text-slate-900 text-sm leading-snug line-clamp-2 group-hover:text-brand-600 transition-colors">
               {product.name}
             </h3>
-            {product.description && (
-              <p className="text-xs text-slate-500 mt-1 line-clamp-2">{product.description}</p>
-            )}
+            <button
+              onClick={handleToggleFavourite}
+              aria-label={isFavourite ? 'Remove from favourites' : 'Add to favourites'}
+              className={`flex-shrink-0 mt-0.5 p-1.5 rounded-full border transition-all duration-200 ${
+                isFavourite
+                  ? 'bg-rose-500 border-rose-500 text-white'
+                  : 'bg-white border-slate-200 text-slate-300 hover:text-rose-500 hover:border-rose-300'
+              }`}
+            >
+              <Heart className={`h-3.5 w-3.5 ${isFavourite ? 'fill-white' : ''}`} />
+            </button>
           </div>
 
-          <div className="flex items-center gap-1 mt-1">
+          {product.description && (
+            <p className="text-xs text-slate-500 line-clamp-2">{product.description}</p>
+          )}
+
+          <div className="flex items-center gap-1">
             {[1,2,3,4,5].map((s) => (
               <Star key={s} className={`h-3 w-3 ${s <= 4 ? 'text-amber-400 fill-amber-400' : 'text-slate-300'}`} />
             ))}

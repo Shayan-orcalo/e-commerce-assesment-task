@@ -1,21 +1,25 @@
 'use client'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { ShoppingCart, User, LogOut, LayoutDashboard, Package, ChevronDown, Menu, X, Search } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { ShoppingCart, User, LogOut, LayoutDashboard, Package, ChevronDown, Menu, X, Search, Heart } from 'lucide-react'
 import { useCartStore } from '@/store/cartStore'
+import { useWishlistStore } from '@/store/wishlistStore'
 import { useAuthStore } from '@/store/authStore'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { cn } from '@/lib/utils'
 
 export default function Navbar() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { getTotalItems, openCart } = useCartStore()
+  const { getTotalItems: getWishlistCount, openWishlist } = useWishlistStore()
   const { user, clearAuth, isAuthenticated } = useAuthStore()
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [searchVal, setSearchVal] = useState('')
   const [mounted, setMounted] = useState(false)
+  const searchDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => { setMounted(true) }, [])
 
@@ -25,9 +29,31 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', fn)
   }, [])
 
+  useEffect(() => () => {
+    if (searchDebounce.current) clearTimeout(searchDebounce.current)
+  }, [])
+
+  const runSearch = (value: string) => {
+    const params = new URLSearchParams(searchParams.toString())
+    if (value.trim()) params.set('search', value.trim())
+    else params.delete('search')
+    params.set('page', '1')
+    router.replace(`/?${params.toString()}`, { scroll: false })
+  }
+
+  // Live search: filters as you type (debounced), and clearing the box back
+  // to empty (e.g. backspacing) drops the search param entirely so the full
+  // catalog shows again — no need to press Enter.
+  const handleSearchChange = (value: string) => {
+    setSearchVal(value)
+    if (searchDebounce.current) clearTimeout(searchDebounce.current)
+    searchDebounce.current = setTimeout(() => runSearch(value), 300)
+  }
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
-    if (searchVal.trim()) router.push(`/?search=${encodeURIComponent(searchVal.trim())}`)
+    if (searchDebounce.current) clearTimeout(searchDebounce.current)
+    runSearch(searchVal)
   }
 
   const handleLogout = () => {
@@ -37,6 +63,7 @@ export default function Navbar() {
   }
 
   const totalItems = getTotalItems()
+  const wishlistCount = getWishlistCount()
 
   return (
     <header
@@ -60,12 +87,18 @@ export default function Navbar() {
           {/* Search bar - desktop */}
           <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-xl mx-4">
             <div className="relative w-full">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <button
+                type="submit"
+                aria-label="Search"
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-brand-600 transition-colors"
+              >
+                <Search className="h-4 w-4" />
+              </button>
               <input
                 type="text"
                 placeholder="Search products..."
                 value={searchVal}
-                onChange={(e) => setSearchVal(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="input-base pl-10 pr-4 h-10"
               />
             </div>
@@ -73,6 +106,20 @@ export default function Navbar() {
 
           {/* Right actions */}
           <div className="flex items-center gap-2 ml-auto">
+            {/* Wishlist */}
+            <button
+              onClick={openWishlist}
+              className="relative p-2.5 rounded-xl text-slate-600 hover:bg-rose-50 hover:text-rose-500 transition-colors"
+              aria-label="Favourites"
+            >
+              <Heart className="h-5 w-5" />
+              {mounted && wishlistCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 h-5 w-5 rounded-full bg-rose-500 text-white text-xs font-bold flex items-center justify-center animate-fade-in">
+                  {wishlistCount > 9 ? '9+' : wishlistCount}
+                </span>
+              )}
+            </button>
+
             {/* Cart */}
             <button
               onClick={openCart}
@@ -170,12 +217,18 @@ export default function Navbar() {
           <div className="md:hidden border-t border-slate-100 py-4 space-y-3 animate-slide-up">
             <form onSubmit={handleSearch}>
               <div className="relative">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <button
+                type="submit"
+                aria-label="Search"
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-brand-600 transition-colors"
+              >
+                <Search className="h-4 w-4" />
+              </button>
                 <input
                   type="text"
                   placeholder="Search products..."
                   value={searchVal}
-                  onChange={(e) => setSearchVal(e.target.value)}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                   className="input-base pl-10"
                 />
               </div>

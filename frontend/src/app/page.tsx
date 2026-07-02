@@ -7,6 +7,7 @@ import ProductCard from '@/components/store/ProductCard'
 import ProductFilters from '@/components/store/ProductFilters'
 import Navbar from '@/components/store/Navbar'
 import CartDrawer from '@/components/store/CartDrawer'
+import WishlistDrawer from '@/components/store/WishlistDrawer'
 import { Spinner } from '@/components/ui/Spinner'
 import { ChevronLeft, ChevronRight, SlidersHorizontal, X, Package, Search } from 'lucide-react'
 import { useState, Suspense } from 'react'
@@ -52,6 +53,7 @@ function CatalogContent() {
     <>
       <Navbar />
       <CartDrawer />
+      <WishlistDrawer />
       <main className="pt-16 min-h-screen bg-slate-50">
         <div className="page-container py-8">
           {/* Hero Banner */}

@@ -20,7 +20,7 @@ export class CreateProductDto {
 
   @ApiPropertyOptional({ example: 'https://images.unsplash.com/...' })
   @IsOptional()
-  @IsUrl()
+  @IsUrl({ require_tld: false })
   imageUrl?: string;
 
   @ApiProperty({ example: 'Electronics' })

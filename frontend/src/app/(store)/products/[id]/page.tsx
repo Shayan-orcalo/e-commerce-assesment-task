@@ -4,6 +4,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { Product } from '@/types'
 import { useCartStore } from '@/store/cartStore'
+import { useWishlistStore } from '@/store/wishlistStore'
 import { formatCurrency, getCategoryColor } from '@/lib/utils'
 import { PageSpinner } from '@/components/ui/Spinner'
 import ProductSuggestions from '@/components/store/ProductSuggestions'
@@ -19,6 +20,7 @@ export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const { addItem } = useCartStore()
+  const { toggleItem, isInWishlist } = useWishlistStore()
   const [qty, setQty] = useState(1)
   const [added, setAdded] = useState(false)
 
@@ -48,6 +50,15 @@ export default function ProductDetailPage() {
     setAdded(true)
     toast.success(`${qty}× ${product.name} added to cart!`)
     setTimeout(() => setAdded(false), 2000)
+  }
+
+  const isFavourite = isInWishlist(product.id)
+
+  // Just toggles the heart (checked/unchecked) — same as the product cards,
+  // the wishlist drawer only opens from the navbar's heart icon.
+  const handleToggleFavourite = () => {
+    toggleItem(product)
+    toast.success(isFavourite ? 'Removed from favourites' : 'Added to favourites!')
   }
 
   const inStock = product.stockQuantity > 0
@@ -98,8 +109,14 @@ export default function ProductDetailPage() {
 
           {/* Action pills */}
           <div className="absolute top-4 right-4 flex flex-col gap-2">
-            <button className="w-10 h-10 rounded-full bg-white shadow-card flex items-center justify-center text-slate-500 hover:text-red-500 transition-colors">
-              <Heart className="h-5 w-5" />
+            <button
+              onClick={handleToggleFavourite}
+              aria-label={isFavourite ? 'Remove from favourites' : 'Add to favourites'}
+              className={`w-10 h-10 rounded-full bg-white shadow-card flex items-center justify-center transition-colors ${
+                isFavourite ? 'text-rose-500' : 'text-slate-500 hover:text-red-500'
+              }`}
+            >
+              <Heart className={`h-5 w-5 ${isFavourite ? 'fill-rose-500' : ''}`} />
             </button>
             <button
               onClick={() => navigator.clipboard?.writeText(window.location.href).then(() => toast.success('Link copied!'))}

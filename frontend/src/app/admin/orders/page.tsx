@@ -38,7 +38,10 @@ export default function AdminOrdersPage() {
     mutationFn: ({ id, status }: { id: string; status: OrderStatus }) =>
       api.patch(`/admin/orders/${id}/status`, { status }),
     onSuccess: () => {
+      // Also invalidate the customer-facing order list ('my-orders') so a
+      // status change is reflected there without needing a manual refresh.
       qc.invalidateQueries({ queryKey: ['admin-orders'] })
+      qc.invalidateQueries({ queryKey: ['my-orders'] })
       toast.success('Order status updated!')
     },
     onError: (err) => toast.error(getErrorMessage(err)),

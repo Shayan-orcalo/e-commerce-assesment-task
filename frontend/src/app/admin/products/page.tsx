@@ -29,10 +29,20 @@ export default function AdminProductsPage() {
     },
   })
 
+  // Admin's own table uses the 'admin-products' key, but the storefront (home
+  // page, product detail, suggestions) caches product data under its own keys —
+  // all of them need invalidating or those pages keep showing stale data.
+  const invalidateProductCaches = () => {
+    qc.invalidateQueries({ queryKey: ['admin-products'] })
+    qc.invalidateQueries({ queryKey: ['products'] })
+    qc.invalidateQueries({ queryKey: ['product'] })
+    qc.invalidateQueries({ queryKey: ['suggestions'] })
+  }
+
   const createMutation = useMutation({
     mutationFn: (data: ProductInput) => api.post('/products', data),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin-products'] })
+      invalidateProductCaches()
       setCreateOpen(false)
       toast.success('Product created!')
     },
@@ -42,7 +52,7 @@ export default function AdminProductsPage() {
   const editMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: ProductInput }) => api.patch(`/products/${id}`, data),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin-products'] })
+      invalidateProductCaches()
       setEditProduct(null)
       toast.success('Product updated!')
     },
@@ -52,7 +62,7 @@ export default function AdminProductsPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/products/${id}`),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin-products'] })
+      invalidateProductCaches()
       setDeleteProduct(null)
       toast.success('Product deleted!')
     },

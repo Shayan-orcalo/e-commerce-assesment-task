@@ -246,6 +246,7 @@ function CheckoutForm({ onSuccess }: { onSuccess: (orderId: string) => void }) {
                 value={cardName}
                 onChange={(e) => setCardName(e.target.value)}
                 className="input-base"
+                autoComplete="off"
               />
             </div>
 
@@ -256,7 +257,11 @@ function CheckoutForm({ onSuccess }: { onSuccess: (orderId: string) => void }) {
                   options={CARD_ELEMENT_OPTIONS}
                   onChange={(e) => {
                     setCardComplete(e.complete)
-                    setCardError(e.error?.message ?? null)
+                    // Stripe reports an "incomplete" error as soon as you blur an
+                    // untouched (empty) field — only surface errors once the user
+                    // has actually typed something, so clicking in and out doesn't
+                    // flash a red error before they've entered anything.
+                    setCardError(!e.empty ? e.error?.message ?? null : null)
                   }}
                 />
               </div>

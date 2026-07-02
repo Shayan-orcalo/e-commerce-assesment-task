@@ -7,8 +7,8 @@ import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { CATEGORIES } from '@/lib/utils'
 import { api, getErrorMessage } from '@/lib/api'
-import { ChevronDown, Link as LinkIcon, Upload, X, ImageIcon } from 'lucide-react'
-import { useState, useRef } from 'react'
+import { ChevronDown, Link as LinkIcon, Upload, X, ImageIcon, AlertTriangle } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import toast from 'react-hot-toast'
 
@@ -26,6 +26,8 @@ export default function ProductForm({ defaultValues, onSubmit, loading, mode }: 
     defaultValues?.imageUrl ? 'url' : 'url',
   )
   const [preview, setPreview] = useState<string>(defaultValues?.imageUrl || '')
+  const [previewError, setPreviewError] = useState(false)
+  const [pendingFile, setPendingFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -51,41 +53,81 @@ export default function ProductForm({ defaultValues, onSubmit, loading, mode }: 
 
   const imageUrl = watch('imageUrl')
 
+  // Revoke the previous object URL whenever the preview changes/unmounts, so
+  // selecting a new file (or closing the modal) doesn't leak blob URLs.
+  useEffect(() => {
+    return () => {
+      if (preview.startsWith('blob:')) URL.revokeObjectURL(preview)
+    }
+  }, [preview])
+
   const switchMode = (m: ImageMode) => {
     setImageMode(m)
     setValue('imageUrl', '', { shouldValidate: false })
     setPreview('')
+    setPreviewError(false)
+    setPendingFile(null)
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Selecting a file only stages it locally — the actual upload happens on
+  // "Create Product" so no request fires (and nothing can error) until then.
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    setUploading(true)
-    try {
-      const formData = new FormData()
-      formData.append('file', file)
-      const res = await api.post<{ url: string }>('/uploads/image', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
-      setValue('imageUrl', res.data.url, { shouldValidate: true })
-      setPreview(res.data.url)
-      toast.success('Image uploaded!')
-    } catch (err) {
-      toast.error(getErrorMessage(err))
-    } finally {
-      setUploading(false)
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file')
+      return
     }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be under 5MB')
+      return
+    }
+    const objectUrl = URL.createObjectURL(file)
+    setPendingFile(file)
+    setPreview(objectUrl)
+    setPreviewError(false)
+    setValue('imageUrl', objectUrl, { shouldValidate: true })
   }
 
   const clearImage = () => {
     setValue('imageUrl', '', { shouldValidate: true })
     setPreview('')
+    setPreviewError(false)
+    setPendingFile(null)
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
+  // Uploads the staged file (if any) only once the user actually submits,
+  // then swaps the blob preview URL out for the real server URL before
+  // handing off to the parent's create/update mutation.
+  const submitWithUpload = async (data: ProductInput) => {
+    if (imageMode === 'url' && previewError) {
+      toast.error("That image URL doesn't work — please use a direct link to an image file")
+      return
+    }
+    if (imageMode === 'upload' && pendingFile) {
+      setUploading(true)
+      try {
+        const formData = new FormData()
+        formData.append('file', pendingFile)
+        const res = await api.post<{ url: string }>('/uploads/image', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        await onSubmit({ ...data, imageUrl: res.data.url })
+        setPendingFile(null)
+      } catch (err) {
+        toast.error(getErrorMessage(err))
+      } finally {
+        setUploading(false)
+      }
+      return
+    }
+    await onSubmit(data)
+  }
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(submitWithUpload)} className="space-y-4">
       <Input
         label="Product Name"
         placeholder="e.g. Premium Leather Wallet"
@@ -185,6 +227,7 @@ export default function ProductForm({ defaultValues, onSubmit, loading, mode }: 
             onChange={(e) => {
               setValue('imageUrl', e.target.value, { shouldValidate: true })
               setPreview(e.target.value)
+              setPreviewError(false)
             }}
           />
         )}
@@ -210,7 +253,7 @@ export default function ProductForm({ defaultValues, onSubmit, loading, mode }: 
             ) : preview ? (
               <div className="flex flex-col items-center gap-1 text-emerald-600">
                 <ImageIcon className="h-5 w-5" />
-                <span className="text-xs font-medium">Image uploaded</span>
+                <span className="text-xs font-medium">Image selected</span>
                 <span className="text-xs text-emerald-500">Click to replace</span>
               </div>
             ) : (
@@ -239,16 +282,34 @@ export default function ProductForm({ defaultValues, onSubmit, loading, mode }: 
         {preview && (
           <div className="mt-2 flex items-center gap-3 p-2.5 bg-slate-50 rounded-xl border border-slate-200">
             <div className="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 border border-slate-200 bg-white">
-              <Image
-                src={preview}
-                alt="Preview"
-                fill
-                className="object-cover"
-                sizes="48px"
-                onError={() => setPreview('')}
-              />
+              {previewError ? (
+                <div className="flex items-center justify-center h-full text-red-400">
+                  <AlertTriangle className="h-5 w-5" />
+                </div>
+              ) : preview.startsWith('blob:') ? (
+                // next/image's optimizer can't fetch blob: URLs server-side, so
+                // locally staged files (not uploaded yet) use a plain <img>.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+              ) : (
+                <Image
+                  src={preview}
+                  alt="Preview"
+                  fill
+                  className="object-cover"
+                  sizes="48px"
+                  onError={() => setPreviewError(true)}
+                />
+              )}
             </div>
-            <p className="text-xs text-slate-500 truncate flex-1">{preview}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-slate-500 truncate">{preview}</p>
+              {previewError && (
+                <p className="text-xs text-red-500 mt-0.5">
+                  Couldn't load this image — make sure the URL links directly to an image file, not a webpage.
+                </p>
+              )}
+            </div>
             <button
               type="button"
               onClick={clearImage}
@@ -262,7 +323,7 @@ export default function ProductForm({ defaultValues, onSubmit, loading, mode }: 
       </div>
 
       <div className="flex gap-3 pt-2">
-        <Button type="submit" loading={loading} className="flex-1">
+        <Button type="submit" loading={loading || uploading} className="flex-1">
           {mode === 'create' ? 'Create Product' : 'Save Changes'}
         </Button>
       </div>
